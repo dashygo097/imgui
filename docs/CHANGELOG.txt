@@ -36,37 +36,85 @@ HOW TO UPDATE?
 - Please report any issue!
 
 -----------------------------------------------------------------------
- VERSION 1.92.1 WIP (In Progress)
+ VERSION 1.92.2 WIP (In Progress)
 -----------------------------------------------------------------------
 
-Breaking changes:
+Breaking Changes:
 
-Other changes:
+Other Changes:
+
+- Windows: fixed an issue where resizable child windows would emit border
+  logic when hidden/non-visible (e.g. when in a docked window that is not
+  selected), impacting code not checking for BeginChild() return value. (#8815)
+- Error Handling: minor improvements to error handling for TableGetSortSpecs()
+  and TableSetBgColor() calls. (#1651, #8499)
+- Misc: fixed building with IMGUI_DISABLE_DEBUG_TOOLS only. (#8796)
+- Misc: fixed building with IMGUI_DISABLE_STB_TRUETYPE_IMPLEMENTATION. (#8794)
+- Misc: removed more redundant inline static linkage from imgui_internal.h to 
+  facilitate using in C++ modules. (#8813, #8682, #8358) [@stripe2933]
+- CI: Added SDL3 builds to MacOS and Windows. (#8819, #8778) [@scribam]
+- CI: Updated Windows CI to use a more recent SDL2. (#8819, #8778) [@scribam]
+- Examples: SDL3+Metal: added SDL3+Metal example. (#8827, #8825) [@shi-yan]
+- Backends: OpenGL3: add and call embedded loader shutdown in ImGui_ImplOpenGL3_Shutdown() 
+  to facilitate multiple init/shutdown cycles in same process. (#8792) [@tim-rex]
+- Backends: OpenGL2, OpenGL3: set GL_UNPACK_ALIGNMENT to 1 before updating 
+  textures. (#8802) [@Daandelange]
+- Backends: Vulkan: Fixed texture update corruption introduced in 1.92.0,
+  affecting some drivers/setups. (#8801, #8755, #8840) [@Retro52, @Miolith]
+
+
+-----------------------------------------------------------------------
+ VERSION 1.92.1 (Released 2025-07-09)
+-----------------------------------------------------------------------
+
+Decorated log and release notes: https://github.com/ocornut/imgui/releases/tag/v1.92.1
+
+Changes:
 
 - Fonts: added ImFontAtlas::SetFontLoader() to dynamically change font
   loader at runtime without using internal API. (#8752, #8465)
+- Fonts: fixed a bug where dynamically changing font loader would lose
+  the Fallback and Ellipsis glyphs under some circumstance. (#8763)
 - Fonts: for large size fonts, layout/size calculation only load glyphs metrics.
   Actual glyphs are renderer+packed when used by drawing functions. (#8758, #8465)
 - Fonts: set a maximum font size of 512.0f at ImGui:: API level to reduce
   edge cases (e.g. out of memory errors). ImDrawList:: API doesn't have the
   constraint. (#8758)
+- Fonts: Restore ImFontConfig::FontNo being a 32-bits value as this is needed
+  to pass full range of information into e.g. FreeType's face_index, as higher
+  bits are used from FreeType 2.6.1. (#8775) [@Valakor]
+  (the field has been erroneously reduced from 32-bits to 8-bit in 1.92.0)
 - Textures: Fixed support for `#define ImTextureID_Invalid` to non-zero value:
   ImTextureData() was incorrectly cleared with zeroes. (#8745) [@rachit7645]
 - Demo: Added "Text -> Font Size" demo section. (#8738) [@Demonese]
 - CI: Fixed dllimport/dllexport tests. (#8757) [@AidanSun05]
+- CI: Updated to use latest Windows image + VS2022.
+- Debug Tools: added IMGUI_DEBUG_HIGHLIGHT_ALL_ID_CONFLICTS to detect
+  id conflicts _before_ hovering. This is very slow and should only be used
+  temporarily. (#8651, #7961, #7669)
+- Examples: GLFW+OpenGL3, GLFW+WGPU: Emscripten Makefiles uses GLFW port
+  'contrib.glfw3' which offers better HiDPI support. (#8742) [@pthom]
+- Backends: GLFW, SDL2 made ImGui_ImplGLFW_GetContentScaleXXX() and
+  ImGui_ImplSDL2_GetContentScaleXXXX() helpers return 1.0f on Emscripten
+  and Android platforms, matching macOS logic. (#8742, #8733) [@pthom]
 - Backends: SDL3: avoid calling SDL_StartTextInput() again if already active.
-  (#8727) [@morrazzzz]
+  (fixes e.g.: an issue on iOS where the keyboard animation will popup every
+  time the user types a key + probably other things) (#8727) [@morrazzzz]
 - Backends: OSX: added ImGuiMouseCursor_Wait and ImGuiMouseCursor_Progress
   mouse cursor support. (#8739) [@cfillion]
+- Backends: Allegro5: fixed texture update broken on some platforms where
+  ALLEGRO_LOCK_WRITEONLY needed all texels to be rewritten. (#8770)
 - Backends: Vulkan: use nonCoherentAtomSize to align upload_size, fixing
   validation error on some setups. (#8743, #8744) [@tquante]
+- Backends: Vulkan: fixed texture synchronization issue introduced in 1.92.0,
+  leading to validation layers reacting. (#8772) [@Majora320]
 
 
 -----------------------------------------------------------------------
  VERSION 1.92.0 (Released 2025-06-25)
 -----------------------------------------------------------------------
 
-Decorated log and release notes: https://github.com/ocornut/imgui/releases/tag/v1.92
+Decorated log and release notes: https://github.com/ocornut/imgui/releases/tag/v1.92.0
 
 THIS VERSION CONTAINS THE LARGEST AMOUNT OF BREAKING CHANGES SINCE 2015!
 I TRIED REALLY HARD TO KEEP THEM TO A MINIMUM, REDUCE THE AMOUNT OF INTERFERENCE,
@@ -142,6 +190,10 @@ Breaking changes:
     - You can use `Metrics/Debugger->Fonts->Font->Input Glyphs Overlap Detection Tool` to
       see list of glyphs available in multiple font sources. This can facilitate understanding
       which font input is providing which glyph.
+- Fonts: **IMPORTANT** on Thread Safety:
+  - A few functions such as font->CalcTextSizeA() were by sheer luck (== accidentally) 
+    thread-safe even thou we had never provided that guarantee before. They are
+    definitively not thread-safe anymore as new glyphs may be loaded.
 
 - Textures:
   - All API functions taking a 'ImTextureID' parameter are now taking a 'ImTextureRef':
@@ -157,6 +209,8 @@ Breaking changes:
   and IsBuilt() functions. The new protocol for backends to handle textures doesn't need them.
   Kept redirection functions (will obsolete).
    - A majority of old backends should still work with new code (behaving like they did before).
+   - For instructions to upgrade your custom backend:
+     https://github.com/ocornut/imgui/blob/master/docs/BACKENDS.md
    - Calling ImFontAtlas::Build() before initializing new backends will erroneously trigger
      preloading all glyphs. Will be detected with an assertion after the backend is initialized.
 - Fonts: ImFontConfig::OversampleH/OversampleV default to automatic (== 0)
@@ -191,6 +245,7 @@ Breaking changes:
   While in theory a vast majority of users shouldn't be affected, some use cases or
   extensions might be. Among other things:
     - ImDrawCmd::TextureId has been changed to ImDrawCmd::TexRef.
+    - ImFontAtlas::TexID has been changed to ImFontAtlas::TexRef.
     - ImFontAtlas::ConfigData[] has been renamed to ImFontAtlas::Sources[].
     - ImFont::ConfigData[], ConfigDataCount has been renamed to Sources[], SourceCount.
     - Each ImFont has a number of ImFontBaked instances corresponding to actively used
@@ -208,6 +263,11 @@ Breaking changes:
             g.Font      == ImGui::GetFont()
             g.FontSize  == ImGui::GetFontSize()
             g.FontBaked == ImGui::GetFontBaked() == ImGui::GetFont()->GetFontBaked(ImGui::GetFontSize())
+    - Fields moved from ImFontAtlas to ImTextureData
+      - ImFontAtlas->TexWidth         -> ImFontAtlas->TexData->Width
+      - ImFontAtlas->TexHeight        -> ImFontAtlas->TexData->Height
+      - ImFontAtlas->TexPixelsAlpha8  -> ImFontAtlas->TexData->GetPixels() (when ImFontAtlas::TexDesiredFormat == ImTextureFormat_Alpha8)
+      - ImFontAtlas->TexPixelsRGBA32  -> ImFontAtlas->TexData->GetPixels() (when ImFontAtlas::TexDesiredFormat == ImTextureFormat_RGBA32)
   Please report if you are affected!
 - Fonts: (users of imgui_freetype)
   - renamed ImFontAtlas::FontBuilderFlags to ImFontAtlas::FontLoaderFlags.
